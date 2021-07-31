@@ -131,7 +131,8 @@ void draw() {
     for (int t = 0; t < TIMESTEPS_PER_FRAME * facSimSpeedMod; t++) {
       for (int i = planets.size() - 1; i >= 0; i--) {
         Planet p = planets.get(i);
-
+        
+        //Remove planets out of screen with v > escape velocity
         if (dist(p.pos, sun) < p.radius + SUN_RADIUS || p.vel.mag() >= sqrt(2 * FAC_GRAV * SUN_MASS / PVector.sub(sun, p.pos).mag()) && !p.onScreen)
           planets.remove(i);
 
@@ -147,11 +148,9 @@ void draw() {
           int SOIindex = SOIbody(p);
           if (SOIindex == -1 || SOIindex == i) {
             p.applyForce(attractMass(p));
-            //println("sun", i);
           } else {
-            p.applyForce(attractMass(p, planets.get(SOIindex)));
-            p.applyForce(attractSun(p, planets.get(SOIindex)));
-            //println("planet", i);
+            p.applyForce(attractMass(p, planets.get(SOIindex))); //force based on p2p
+            p.applyForce(attractSun(p, planets.get(SOIindex))); //force to compensate relative motion of main body
           }
         }
         
@@ -301,8 +300,7 @@ void draw() {
     image(gizmos, 0, 0);
   
   //3-body sphere of influence debug overlay  
-  // SOIoverlay(); 
-  
+  // SOIoverlay();  
 }
 
 PVector attract(Planet p) {
@@ -314,6 +312,7 @@ PVector attract(Planet p) {
   return f;
 }
 
+//Force based on planet Q, but applied to P using P's mass
 PVector attractSun(Planet p, Planet Q){
   float m = SUN_MASS * p.mass;
   float rsq = sq(dist(sun, Q.pos));
@@ -402,8 +401,6 @@ void explode(Planet p, int i) {
     planets.remove(i);
   }
 }
-
-
 
 void updateNewPlanetColour() {
   newPlanetColour = colourFromMass(newPlanetHue, newPlanetMass);
@@ -536,6 +533,7 @@ float dist(PVector v1, PVector v2) {
   return dist(v1.x, v1.y, v2.x, v2.y);
 }
 
+//Gravitational force
 float F_energy(float x, float y, Planet P) { 
   return FAC_GRAV * P.mass / distance(x, y, P);
 }
@@ -549,6 +547,7 @@ float distance(float x, float y, Planet P) {
   return (x - P.pos.x) * (x - P.pos.x) + (y - P.pos.y) * (y - P.pos.y);
 }
 
+//Find body with most influence on P
 int SOIbody(Planet P) {
   int index = 0;
   float largest = -1;
@@ -562,10 +561,6 @@ int SOIbody(Planet P) {
       }
     }
   }
-  //println(FAC_GRAV * SUN_MASS / ((P.pos.x-width/2) * (P.pos.x-width/2) + (P.pos.y-height/2) * (P.pos.y-height/2)));
-  println("sun", FAC_GRAV * SUN_MASS / ((P.pos.x-width/2) * (P.pos.x-width/2) + (P.pos.y-height/2) * (P.pos.y-height/2)));
-  if (planets.size() > 1)
-    println("p2p", FAC_GRAV * P.mass / ((dist(planets.get(1).pos, planets.get(0).pos)) * dist(planets.get(1).pos, planets.get(0).pos)));
   if (FAC_GRAV * SUN_MASS / ((P.pos.x-width/2) * (P.pos.x-width/2) + (P.pos.y-height/2) * (P.pos.y-height/2)) > largest){
     return -1; 
   } else {
@@ -573,8 +568,9 @@ int SOIbody(Planet P) {
   }
 }
 
+//SOI debug overlay
 void SOIoverlay() {  
-  float step = 3; 
+  float step = 3; //overlay density
   if (planets.size() > 1) {
     for (int i = 0; i < width; i += step) {
       for (int j = 0; j < height; j += step) {
