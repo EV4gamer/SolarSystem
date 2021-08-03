@@ -140,8 +140,7 @@ void draw() {
         if (dist(p.pos, sun) < 2.456 * SUN_RADIUS * pow((SUN_MASS * p.radius * p.radius * p.radius) / (p.mass * SUN_RADIUS * SUN_RADIUS * SUN_RADIUS), (1.0 / 3.0)) && enableRoche) {
           explode(p, i);
         }
-        
-        
+               
         if (!enableSOI & !enablePtPPhysics) {
           p.applyForce(attractMass(p));          
         } else if (enableSOI){ //Sphere of Influence based physics
@@ -427,8 +426,8 @@ void keyPressed() {
     case '=':
     case '+':
       if (alternateAction)
-        facSimSpeedMod = constrain(facSimSpeedMod + 0.1, 0.1, 5);
-      else
+        facSimSpeedMod = constrain(facSimSpeedMod + 0.01, 0.01, 5);
+      else        
         facSimSpeedMod = constrain(facSimSpeedMod + 0.5, 0.5, 5);
       break;
     case '-':
@@ -479,6 +478,15 @@ void keyPressed() {
         enableSOI = !enableSOI;
       } else {
         enablePtPPhysics = !enablePtPPhysics;
+      }
+      break;
+    case 'k':
+    case 'K':
+    for (int i = planets.size() - 1; i >= 0; i--) {
+        Planet p = planets.get(i);
+        if (dist(mouseX, mouseY, p.pos.x, p.pos.y) < p.radius) {
+          setKeplerOrbit(planets.get(i));
+        }
       }
       break;
     case 'r':
@@ -543,6 +551,7 @@ float F_energy(Planet Q, Planet P) {
   return FAC_GRAV * P.mass / (dist(P.pos, Q.pos) * dist(P.pos, Q.pos));
 }
 
+//square of the distance between x,y and p
 float distance(float x, float y, Planet P) {
   return (x - P.pos.x) * (x - P.pos.x) + (y - P.pos.y) * (y - P.pos.y);
 }
@@ -584,5 +593,41 @@ void SOIoverlay() {
         }
       }
     }
+  }
+}
+
+//Kerlerian circle orbit around body with most influence
+void setKeplerOrbit(Planet P){
+  int index = SOIbody(P);
+  float velocity;
+  float angle;
+  
+  if (index == -1){
+    velocity = sqrt(FAC_GRAV * SUN_MASS / sqrt(distance(width/2, height/2, P)));
+    angle = PI - atan((P.pos.y-height/2) / (P.pos.x-width/2));
+  
+    if (P.pos.x > width/2 && P.pos.y > height/2){
+      angle += PI;
+    } else if(P.pos.x > width/2 && P.pos.y < height/2) {
+      angle -= PI;  
+    }
+  } else {
+    velocity = sqrt(FAC_GRAV * planets.get(index).mass / dist(P.pos, planets.get(index).pos));
+    angle = PI - atan((P.pos.y - planets.get(index).pos.y) / (P.pos.x - planets.get(index).pos.x));
+    
+    if (P.pos.x > planets.get(index).pos.x && P.pos.y > planets.get(index).pos.y){
+      angle += PI;
+    } else if(P.pos.x > planets.get(index).pos.x && P.pos.y < planets.get(index).pos.y) {
+      angle -= PI;  
+    }
+  }
+  
+  PVector v = new PVector(-sin(angle) * velocity, -cos(angle) * velocity);
+  //println("angle:", angle, "velocity:", v, "currentV", P.vel);
+  
+  if(index == -1){
+    P.vel = v;
+  } else {  
+    P.vel = v.add(planets.get(index).vel);
   }
 }
