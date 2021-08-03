@@ -426,7 +426,7 @@ void keyPressed() {
     case '=':
     case '+':
       if (alternateAction)
-        facSimSpeedMod = constrain(facSimSpeedMod + 0.01, 0.01, 5);
+        facSimSpeedMod = constrain(facSimSpeedMod + 0.1, 0.1, 5);
       else        
         facSimSpeedMod = constrain(facSimSpeedMod + 0.5, 0.5, 5);
       break;
@@ -623,7 +623,6 @@ void setKeplerOrbit(Planet P){
   }
   
   PVector v = new PVector(-sin(angle) * velocity, -cos(angle) * velocity);
-  //println("angle:", angle, "velocity:", v, "currentV", P.vel);
   
   if(index == -1){
     P.vel = v;
